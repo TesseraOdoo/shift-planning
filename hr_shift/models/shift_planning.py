@@ -154,6 +154,15 @@ class ShiftPlanning(models.Model):
         for planning in self:
             planning.generate_shifts()
 
+    def action_add_new_employees(self):
+        """Add the employees that are missing in already generated plannings
+        (e.g. new hires), keeping the shifts already assigned and the state
+        of each planning."""
+        for planning in self.filtered(lambda x: x.state != "new"):
+            state = planning.state
+            planning.generate_shifts()
+            planning.state = state
+
     def copy_to_planning(self):
         action = self.env["ir.actions.act_window"]._for_xml_id(
             "hr_shift.shift_planning_wizard_action"

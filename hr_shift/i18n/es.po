@@ -35,6 +35,21 @@ msgid "Active"
 msgstr "Activo"
 
 #. module: hr_shift
+#: model:ir.actions.server,name:hr_shift.action_add_new_employees
+#: model_terms:ir.ui.view,arch_db:hr_shift.shift_planning_form
+msgid "Add new employees"
+msgstr "Añadir empleados nuevos"
+
+#. module: hr_shift
+#: model_terms:ir.ui.view,arch_db:hr_shift.shift_planning_form
+msgid ""
+"Add the employees available for shift planning that are not in this planning "
+"yet, keeping the current assignments"
+msgstr ""
+"Añade los empleados disponibles para la planificación de turnos que aún no "
+"están en esta planificación, sin tocar las asignaciones actuales"
+
+#. module: hr_shift
 #: model_terms:ir.ui.view,arch_db:hr_shift.shift_template_form
 #: model_terms:ir.ui.view,arch_db:hr_shift.shift_template_search
 msgid "Archived"
