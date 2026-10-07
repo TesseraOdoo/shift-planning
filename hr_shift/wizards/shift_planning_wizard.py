@@ -1,11 +1,6 @@
 # Copyright 2024 Tecnativa - David Vidal
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
-import logging
-
 from odoo import api, fields, models
-from odoo.exceptions import UserError
-
-_logger = logging.getLogger(__name__)
 
 
 class ShiftPlanningWizard(models.TransientModel):
@@ -59,13 +54,6 @@ class ShiftPlanningWizard(models.TransientModel):
         ).from_planning_id = self.env["hr.shift.planning"]._get_last_plan()
 
     def generate(self):
-        def _shift_details_data(shift_details):
-            # Prepare WEEK_DAYS_SELECTION keys
-            data = dict([(str(i), False) for i in range(7)])
-            for detail in shift_details:
-                data[detail.day_number] = detail.template_id
-            return data
-
         planning = self.from_planning_id.copy(
             {
                 "week_number": self.week_number,
@@ -73,28 +61,14 @@ class ShiftPlanningWizard(models.TransientModel):
             }
         )
         planning.generate_shifts()
-        shift_templates_dict = {
-            x.employee_id: {"template_id": x.template_id, "shift_lines": x.line_ids}
-            for x in self.from_planning_id.shift_ids
-        }
+        previous_shifts = {x.employee_id: x for x in self.from_planning_id.shift_ids}
         for shift in planning.shift_ids:
-            previous_shift_data = shift_templates_dict.get(shift.employee_id)
-            if not previous_shift_data:
+            previous_shift = previous_shifts.get(shift.employee_id)
+            if not previous_shift:
                 continue
-            shift.template_id = previous_shift_data["template_id"]
+            shift.template_id = previous_shift.template_id
             if self.copy_shift_details:
-                previous_shift_details = _shift_details_data(
-                    previous_shift_data["shift_lines"]
-                )
-                for line in shift.line_ids:
-                    try:
-                        line.template_id = (
-                            previous_shift_details[line.day_number] or shift.template_id
-                        )
-                    except UserError as e:
-                        # This might be cause by holidays or employee leaves. Just
-                        # ignore these exceptions and keep going
-                        _logger.debug(e)
+                shift._copy_lines_from(previous_shift)
         action = self.env["ir.actions.act_window"]._for_xml_id(
             "hr_shift.shift_planning_action"
         )

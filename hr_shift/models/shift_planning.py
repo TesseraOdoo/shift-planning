@@ -288,6 +288,37 @@ class ShiftPlanningShift(models.Model):
         res._generate_shift_lines()
         return res
 
+    def _copy_lines_from(self, source_shift):
+        """Copy the day by day assignment of ``source_shift``, the shift of the
+        same employee in another planning. Days off in the source stay off;
+        days that were not available there (public holidays, leaves) get the
+        shift template, as they say nothing about the usual assignment. Days
+        worked in the source out of the days of the shift template (e.g. a
+        week that starts on Sunday night) are added."""
+        self.ensure_one()
+        lines = {line.day_number: line for line in self.line_ids}
+        done_days = set()
+        for source_line in source_shift.line_ids:
+            day = source_line.day_number
+            line = lines.get(day) if day not in done_days else None
+            done_days.add(day)
+            if not line:
+                if source_line.state == "assigned":
+                    line = self.line_ids.create(
+                        {"shift_id": self.id, "day_number": day}
+                    )
+                    if line.state not in {"holiday", "on_leave"}:
+                        line.template_id = source_line.template_id
+                continue
+            if line.state in {"holiday", "on_leave"}:
+                continue
+            if source_line.state in {"assigned", "unassigned"}:
+                template = source_line.template_id
+            else:
+                template = self.template_id
+            if line.template_id != template:
+                line.template_id = template
+
     def write(self, vals):
         if "template_id" not in vals:
             return super().write(vals)
