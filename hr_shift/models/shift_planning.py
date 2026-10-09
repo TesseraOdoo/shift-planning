@@ -460,16 +460,26 @@ class ShiftPlanningLine(models.Model):
                 .replace(tzinfo=None)
             )
 
-    @api.depends("start_time", "end_time")
+    @api.depends("start_time", "end_time", "template_id.break_time")
     def _compute_duration(self):
         for line in self:
             if line.start_time and line.end_time:
                 delta = line.end_time - line.start_time
-                line.duration_hours = delta.total_seconds() / 3600.0
+                line.duration_hours = (
+                    delta.total_seconds() / 3600.0 - line._get_break_time()
+                )
                 line.duration_days = 1
             else:
                 line.duration_hours = 0.0
                 line.duration_days = 0.0
+
+    def _get_break_time(self):
+        """Unpaid break hours of the shift"""
+        self.ensure_one()
+        if not self.template_id.break_time or not (self.start_time and self.end_time):
+            return 0.0
+        duration = (self.end_time - self.start_time).total_seconds() / 3600.0
+        return min(self.template_id.break_time, duration)
 
     def _is_public_holiday(self):
         # To override
