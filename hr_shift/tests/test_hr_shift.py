@@ -243,3 +243,12 @@ class TestHrShift(TestHrShiftBase):
         )
         line = self._assign_night_shift()
         self.assertEqual(line.state, "assigned")
+
+    def test_shift_break_time(self):
+        self.template_morning.break_time = 0.5
+        self.planning.generate_shifts()
+        line = self.planning.shift_ids.filtered(
+            lambda x: x.employee_id == self.employee_a
+        ).line_ids.filtered(lambda x: x.day_number == "0")
+        line.template_id = self.template_morning
+        self.assertEqual(line.duration_hours, 5.5)

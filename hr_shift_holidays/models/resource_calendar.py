@@ -1,6 +1,6 @@
 # Copyright 2026 Tesseratech - Abraham Anes
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 
@@ -52,6 +52,11 @@ class ResourceCalendar(models.Model):
                         stop = string_to_datetime(record.end_time).astimezone(
                             stop.tzinfo
                         )
+                        break_hours = record._get_break_time()
+                        if break_hours:
+                            # The unpaid break is not working time, so the
+                            # leave doesn't cover it either
+                            stop -= timedelta(hours=break_hours)
                         if request_unit == "half_day":
                             start = start + (stop - start) / 2
                     items.append((start, stop, record))

@@ -87,3 +87,18 @@ class TestHrShiftHolidays(TestHrShiftBase):
         self.assertEqual(leave.number_of_hours, 8.0)
         # And Monday's shift is still a working shift
         self.assertEqual(self.line_0.state, "assigned")
+
+    def test_leave_durations_deduct_shift_break(self):
+        self.template_morning.write({"break_time": 0.5})
+        self.line_0.template_id = self.template_morning
+        leave = self._create_leave()
+        # 6 hours shift - 30 minutes unpaid break
+        self.assertEqual(leave.number_of_hours, 5.5)
+
+    def test_half_day_leave_deducts_shift_break(self):
+        self.template_morning.write({"break_time": 0.5})
+        self.line_0.template_id = self.template_morning
+        leave = self._create_leave(
+            request_unit_half=True, request_date_from_period="am"
+        )
+        self.assertEqual(leave.number_of_hours, 2.75)

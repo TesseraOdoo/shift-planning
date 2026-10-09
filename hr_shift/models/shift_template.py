@@ -41,6 +41,9 @@ class ShiftTemplate(models.Model):
         "will work.",
     )
     active = fields.Boolean(default=True)
+    break_time = fields.Float(
+        help="Unpaid break automatically deducted from the shift working hours."
+    )
 
     def _prepare_time(self):
         def _parse_float_time(float_time):
