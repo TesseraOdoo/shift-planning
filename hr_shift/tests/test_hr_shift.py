@@ -244,6 +244,35 @@ class TestHrShift(TestHrShiftBase):
         line = self._assign_night_shift()
         self.assertEqual(line.state, "assigned")
 
+    def test_shift_break_time(self):
+        self.template_morning.break_time = 0.5
+        self.planning.generate_shifts()
+        line = self.planning.shift_ids.filtered(
+            lambda x: x.employee_id == self.employee_a
+        ).line_ids.filtered(lambda x: x.day_number == "0")
+        line.template_id = self.template_morning
+        self.assertEqual(line.duration_hours, 5.5)
+        # The break splits the working intervals and is the lunch time
+        start_dt = end_dt = datetime(2025, 1, 13, tzinfo=pytz.utc)
+        calendar = self.employee_a.resource_calendar_id
+        resource = self.employee_a.resource_id
+        res = calendar._attendance_intervals_batch(
+            start_dt, end_dt, resources=resource
+        )[resource.id]
+        self.assertEqual(
+            sorted(
+                (s.hour, s.minute, e.hour, e.minute) for s, e, r in res if r == line
+            ),
+            [(7, 0, 9, 45), (10, 15, 13, 0)],
+        )
+        res = calendar._attendance_intervals_batch(
+            start_dt, end_dt, resources=resource, lunch=True
+        )[resource.id]
+        ((start, stop, _line),) = (i for i in res if i[2] == line)
+        self.assertEqual(
+            (start.hour, start.minute, stop.hour, stop.minute), (9, 45, 10, 15)
+        )
+
     def test_night_shift_attendance_intervals_local_day(self):
         madrid = pytz.timezone("Europe/Madrid")
         template = self.env["hr.shift.template"].create(

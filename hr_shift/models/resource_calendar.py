@@ -45,7 +45,7 @@ class ResourceCalendar(models.Model):
         res = super()._attendance_intervals_batch(
             start_dt, end_dt, resources, domain, tz, lunch
         )
-        if resources and not lunch:
+        if resources:
             shift_ids = self._resource_shift_for_datetime_range(
                 start_dt, end_dt, resources, tz=tz
             )
@@ -67,7 +67,24 @@ class ResourceCalendar(models.Model):
                             or end_time.date() == end.date()
                         )
                     ]
-                    intervals_to_add.append((start_time, end_time, shift))
+                    # The unpaid break splits the shift in its middle and is its
+                    # lunch time, so it is deducted from the attendances too
+                    break_time = shift._get_break_time()
+                    if break_time:
+                        middle = start_time + (end_time - start_time) / 2
+                        half_break = timedelta(hours=break_time / 2)
+                        if lunch:
+                            periods = [(middle - half_break, middle + half_break)]
+                        else:
+                            periods = [
+                                (start_time, middle - half_break),
+                                (middle + half_break, end_time),
+                            ]
+                    elif lunch:
+                        continue
+                    else:
+                        periods = [(start_time, end_time)]
+                    intervals_to_add += [(start, end, shift) for start, end in periods]
                 res[resource.id]._items = [
                     x for x in resource_intervals if x not in intervals_to_remove
                 ] + intervals_to_add

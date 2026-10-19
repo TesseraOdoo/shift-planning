@@ -23,6 +23,9 @@
                             <field name="tz" />
                         </group>
                         <group>
+                            <field name="break_time" widget="float_time" />
+                        </group>
+                        <group>
                             <field name="day_of_week_start" />
                             <field name="day_of_week_end" />
                         </group>
